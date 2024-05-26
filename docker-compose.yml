@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  qingpingtoinfluxdb:
+    image: quantensittich/qingping2influxdb:latest
+    restart: unless-stopped
+    container_name: QingpingToInfluxDB
+    environment:
+      QINGPING_APPKEY: user_email@example.com
+      QINGPING_APPSECRET: user_password
+      INFLUXDB_URL: http://user-influxdb-url
+      INFLUXDB_TOKEN: user_token
+      INFLUXDB_ORG: user_org
+      INFLUXDB_BUCKET: user_bucket
+      FETCH_INTERVAL: 20
+      #DEBUG: true #uncomment if shell be enabled
