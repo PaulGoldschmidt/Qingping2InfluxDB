@@ -5,8 +5,8 @@ services:
     restart: unless-stopped
     container_name: QingpingToInfluxDB
     environment:
-      QINGPING_APPKEY: user_email@example.com
-      QINGPING_APPSECRET: user_password
+      QINGPING_APPKEY: SAMPLE_APPKEY
+      QINGPING_APPSECRET: SAMPLE_APPSECRET
       INFLUXDB_URL: http://user-influxdb-url
       INFLUXDB_TOKEN: user_token
       INFLUXDB_ORG: user_org
