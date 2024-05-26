@@ -18,14 +18,13 @@ There is a multiplatform docker image for this code available on docker hub, an 
 If you want to use docker run instead of docker compose (not recommended! :shipit:), you can use:
 ```
 docker run -d --restart unless-stopped --name Qingping2InfluxDB \
-  -e QINGPING_APPKEY=user_email@example.com \
-  -e QINGPING_APPSECRET=user_password \
+  -e QINGPING_APPKEY=QINGPING_APPKEY \
+  -e QINGPING_APPSECRET=QINGPING_APPSECRET \
   -e API_BASE_URL=http://user-api-base-url \
   -e INFLUXDB_URL=http://user-influxdb-url \
   -e INFLUXDB_TOKEN=user_token \
   -e INFLUXDB_ORG=user_org \
   -e INFLUXDB_BUCKET=user_bucket \
-  -e DEVICE_NAMES_TO_MONITOR=DEVICE1,DEVICE2 \
   quantensittich/qingping2influxdb:latest
 ```
 
@@ -33,7 +32,7 @@ docker run -d --restart unless-stopped --name Qingping2InfluxDB \
 ## Requirements
 
 - Python 3.x
-- Access to quingping devices.
+- Access to quingping devices in your account - sadly this means that the Homekit Integration does not work.
 - An InfluxDB server (either local or remote) to store the data.
 
 ## Testing your quingping setup & get device overview

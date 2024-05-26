@@ -54,7 +54,7 @@ def update_interval(mac):
     response = requests.put(url_setting, json=data, headers=headers)
 
     # Print the response
-    print(response.text)
+    if DEBUG: print(response.text)
 
 async def fetch_token():
     global access_token  # Declare access_token as global
@@ -73,10 +73,10 @@ async def fetch_token():
         if response.status_code == 200:
             response_data = response.json()
             access_token = response_data.get('access_token')
-            print("Access token retrieved at", datetime.now(), ":", access_token)
+            if DEBUG: print("Access token retrieved at", datetime.now(), ":", access_token)
         else:
-            print("Failed to retrieve access token:", response.status_code)
-            print(response.json())
+            if DEBUG: print("Failed to retrieve access token:", response.status_code)
+            if DEBUG: print(response.json())
 
         await asyncio.sleep(59 * 60)  # Execute every 59 minutes
 
@@ -122,7 +122,7 @@ async def main(FETCH_INTERVAL):
                     if DEBUG: print(key, value["value"])
                 # Write the point to InfluxDB
             if DEBUG: print(f"Writing the following to InfluxDB:", dynamic_point)
-            #write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=dynamic_point)
+            write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=dynamic_point)
 
             await asyncio.sleep(FETCH_INTERVAL)
 

@@ -12,4 +12,4 @@ services:
       INFLUXDB_ORG: user_org
       INFLUXDB_BUCKET: user_bucket
       FETCH_INTERVAL: 20
-      #DEBUG: true #uncomment if shell be enabled
+      #DEBUG: "true" #uncomment if shall be enabled
