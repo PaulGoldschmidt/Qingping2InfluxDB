@@ -28,7 +28,7 @@ INFLUXDB_URL = os.environ.get('INFLUXDB_URL') or config['INFLUXDB_URL']
 INFLUXDB_TOKEN = os.environ.get('INFLUXDB_TOKEN') or config['INFLUXDB_TOKEN']
 INFLUXDB_ORG = os.environ.get('INFLUXDB_ORG') or config['INFLUXDB_ORG']
 INFLUXDB_BUCKET = os.environ.get('INFLUXDB_BUCKET') or config['INFLUXDB_BUCKET']
-FETCH_INTERVAL = os.environ.get('FETCH_INTERVAL') or config['FETCH_INTERVAL']
+FETCH_INTERVAL = int(os.environ.get('FETCH_INTERVAL') or config['FETCH_INTERVAL'])
 DEBUG = os.environ.get('DEBUG') or config.get('DEBUG', '')
 
 url_token = "https://oauth.cleargrass.com/oauth2/token"
@@ -37,7 +37,6 @@ url_setting = "https://apis.cleargrass.com/v1/apis/devices/settings"
 access_token = None
 
 def update_interval(mac):
-    # Define the headers and data
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -45,19 +44,17 @@ def update_interval(mac):
     timestamp = int(time.time())
     data = {
         "mac": [mac],
-        "report_interval": int(FETCH_INTERVAL),
-        "collect_interval": int(FETCH_INTERVAL),
+        "report_interval": FETCH_INTERVAL,
+        "collect_interval": FETCH_INTERVAL,
         "timestamp": timestamp
     }
     print(data)
-    # Make the PUT request
     response = requests.put(url_setting, json=data, headers=headers)
 
-    # Print the response
     if DEBUG: print(response.text)
 
 async def fetch_token():
-    global access_token  # Declare access_token as global
+    global access_token
     while True:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded"
@@ -78,51 +75,54 @@ async def fetch_token():
             if DEBUG: print("Failed to retrieve access token:", response.status_code)
             if DEBUG: print(response.json())
 
-        await asyncio.sleep(59 * 60)  # Execute every 59 minutes
+        await asyncio.sleep(59 * 60)
+
+def validate_data(data):
+    for key in data:
+        if isinstance(data[key]["value"], (int, float)):
+            data[key]["value"] = float(data[key]["value"])
+    return data
 
 async def main(FETCH_INTERVAL):
     influxdb_client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
     write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
-    global access_token  # Declare access_token as global
+    global access_token
     while access_token is None:
         if DEBUG: print(f"Waiting for token to be generated")
-        await asyncio.sleep(1)  # Wait until access_token is retrieved
+        await asyncio.sleep(1)
     try:
         while True:
-            #Get data
             headers_devices = {
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json"
             }
-             
+
             response_devices = requests.get(url_devices, headers=headers_devices)
             if response_devices.status_code == 200:
                 devices_data = response_devices.json()
             else:
                 if DEBUG: print("Failed to retrieve devices:", response_devices.status_code)
                 if DEBUG: print(response_devices.json())
-        
-            # Writing data to InfluxDB
-            # Iterate through devices data and write points dynamically
+                await asyncio.sleep(FETCH_INTERVAL)
+                continue
+
             for device in devices_data["devices"]:
-                # Extract report_interval and collect_interval
                 report_interval = device['info']['setting']['report_interval']
                 collect_interval = device['info']['setting']['collect_interval']
                 
-                # Check if report_interval and collect_interval match FETCH_INTERVAL
                 if report_interval != FETCH_INTERVAL or collect_interval != FETCH_INTERVAL:
                     macadress = device['info']['mac']
-                    if DEBUG: print("Updating FETCH_INTERVAL for the following MAC adress:", macadress)
+                    if DEBUG: print("Updating FETCH_INTERVAL for the following MAC address:", macadress)
                     update_interval(macadress)
 
-                # Create a new point for each device
                 dynamic_point = Point("qingping_data").tag("device", device["info"]["name"])
-                for key, value in device["data"].items():
+                validated_data = validate_data(device["data"])
+                for key, value in validated_data.items():
                     dynamic_point = dynamic_point.field(key, value["value"])
                     if DEBUG: print(key, value["value"])
-                # Write the point to InfluxDB
-            if DEBUG: print(f"Writing the following to InfluxDB:", dynamic_point)
-            write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=dynamic_point)
+                
+                if DEBUG: print(f"Writing the following to InfluxDB:", dynamic_point)
+                write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=dynamic_point)
 
             await asyncio.sleep(FETCH_INTERVAL)
 
@@ -138,5 +138,5 @@ if __name__ == '__main__':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.gather(fetch_token(),main(int(FETCH_INTERVAL))))
+    loop.run_until_complete(asyncio.gather(fetch_token(), main(FETCH_INTERVAL)))
     loop.close()
